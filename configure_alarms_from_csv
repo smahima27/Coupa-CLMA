@@ -1,0 +1,111 @@
+#!/bin/bash
+
+#Need to provide csv file with instance name,id,region as arguement
+OLDIFS= $IFS
+IFS=','
+while read name id region
+do
+    aws cloudwatch put-metric-alarm \
+        --alarm-name "$name-$id-Tomcat" \
+        --alarm-description "$name-$id-Tomcat" \
+        --actions-enabled \
+        --ok-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --alarm-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --metric-name 'TomcatAlive' \
+        --namespace 'System/Linux' \
+        --statistic 'Average' \
+        --dimensions "[{\"Name\":\"InstanceId\",\"Value\":\"$id\"}]" \
+        --period 300 \
+        --evaluation-periods 2 \
+        --datapoints-to-alarm 2 \
+        --threshold 100 \
+        --comparison-operator 'LessThanThreshold'
+        --region $region
+
+    aws cloudwatch put-metric-alarm \
+        --alarm-name "$name-$id-Apache" \
+        --alarm-description "$name-$id-Apache Status" \
+        --actions-enabled \
+        --ok-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --alarm-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --metric-name 'ApacheAlive' \
+        --namespace 'System/Linux' \
+        --statistic 'Average' \
+        --dimensions "[{\"Name\":\"InstanceId\",\"Value\":\"$id\"}]" \
+        --period 300 \
+        --evaluation-periods 2 \
+        --datapoints-to-alarm 2 \
+        --threshold 100 \
+        --comparison-operator 'LessThanThreshold'
+        --region $region
+
+    aws cloudwatch put-metric-alarm \
+        --alarm-name "$name-$id-CPUAlarm" \
+        --alarm-description "$name-$id-CPU Utilization" \
+        --actions-enabled \
+        --ok-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --alarm-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --metric-name 'CPUUtilization' \
+        --namespace 'AWS/EC2' \
+        --statistic 'Average' \
+        --dimensions "[{\"Name\":\"InstanceId\",\"Value\":\"$id\"}]" \
+        --period 300 \
+        --evaluation-periods 4 \
+        --datapoints-to-alarm 4 \
+        --threshold 95 \
+        --comparison-operator 'GreaterThanOrEqualToThreshold'
+        --region $region
+
+    aws cloudwatch put-metric-alarm \
+        --alarm-name "$name-$id-MemoryAlarm" \
+        --alarm-description "$name-$id-Memory Utilization" \
+        --actions-enabled \
+        --ok-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --alarm-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --metric-name 'MemoryUtilization' \
+        --namespace 'System/Linux' \
+        --statistic 'Average' \
+        --dimensions "[{\"Name\":\"InstanceId\",\"Value\":\"$id\"}]" \
+        --period 300 \
+        --evaluation-periods 8 \
+        --datapoints-to-alarm 8 \
+        --threshold 95 \
+        --comparison-operator 'GreaterThanOrEqualToThreshold'
+        --region $region
+    
+    aws cloudwatch put-metric-alarm \
+        --alarm-name "$name-DiskSpaceAlarm1" \
+        --alarm-description "$name OS Disk Space Available" \
+        --actions-enabled \
+        --ok-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --alarm-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --metric-name 'DiskSpaceUtilization' \
+        --namespace 'System/Linux' \
+        --statistic 'Average' \
+        --dimensions "[{\"Name\":\"InstanceId\",\"Value\":\"$id\"},{\"Name\":\"MountPath\",\"Value\":\"/mnt/data\"},{\"Name\":\"Filesystem\",\"Value\":\"/dev/nvme1n1\"}]" \
+        --period 300 \
+        --evaluation-periods 48 \
+        --datapoints-to-alarm 48 \
+        --threshold 80 \
+        --comparison-operator 'GreaterThanOrEqualToThreshold'
+        --region $region
+
+    aws cloudwatch put-metric-alarm \
+        --alarm-name "$name-DiskSpaceAlarm2" \
+        --alarm-description "$name OS Disk Space Available" \
+        --actions-enabled \
+        --ok-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --alarm-actions 'arn:aws:sns:us-east-1:320181695008:VOAlerts' \
+        --metric-name 'DiskSpaceUtilization' \
+        --namespace 'System/Linux' \
+        --statistic 'Average' \
+        --dimensions "[{\"Name\":\"InstanceId\",\"Value\":\"$id\"},{\"Name\":\"MountPath\",\"Value\":\"/\"},{\"Name\":\"Filesystem\",\"Value\":\"/dev/nvme0n1p1\"}]" \
+        --period 300 \
+        --evaluation-periods 48 \
+        --datapoints-to-alarm 48 \
+        --threshold 80 \
+        --comparison-operator 'GreaterThanOrEqualToThreshold'
+        --region $region
+echo "$name $id alarm created"
+done< ${1}
+IFS=$OLDIFS
